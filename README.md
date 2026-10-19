@@ -23,7 +23,7 @@ The window opens at 1000 × 650 and remembers your preferred size.
 
 Windows 10/11, x64, with .NET Framework 4.8. Run `BeniZip-Setup-0.2.0.exe` from the latest release. It installs for your account without administrator access.
 
-**Every supported archive type is selected by default:** ZIP, RAR, 7z, TAR, GZ, TGZ, BZ2, XZ, ZST, CAB, ARJ, LZH and 001. Setup registers those types, Explorer commands and shortcuts. You can change the selection in Options → Archive file types. The screen shows which types actually open in BeniZip.
+**Every supported archive type is selected by default:** ZIP, RAR, 7z, TAR, GZ, TGZ, BZ2, XZ, ZST, CAB, ARJ, LZH and 001. Setup registers those types, Explorer commands and shortcuts. You can change the selection in Options → Default archive app. The screen shows which types actually open in BeniZip.
 
 Windows protects existing default-app choices. Setup opens Windows' confirmation screen when confirmation is required; it cannot silently replace those choices. Select BeniZip there for the remaining types. This uses Windows' supported [default-app registration](https://learn.microsoft.com/en-us/windows/win32/shell/default-programs).
 
@@ -31,7 +31,7 @@ The application lives in `%LOCALAPPDATA%\Programs\BeniZip`. Preferences and the 
 
 ## Updates
 
-The public channel is `https://github.com/Benighter/BeniZip/releases/latest/download/manifest.json`. BeniZip checks on startup and periodically, at most once every six hours, and offers available updates. Use Help → Check for updates for an immediate check.
+The public channel is `https://github.com/Benighter/BeniZip/releases/latest/download/manifest.json`. BeniZip checks on startup and periodically, at most once every six hours, and offers available updates. Use Options → Check for updates for an immediate check.
 
 The signed manifest pins the application ID, version, download URL, byte count and SHA-256. An independent updater rechecks the signature and package before replacing the installed application. No private signing key ships in the source or application. Release verification is separate from Windows Authenticode; the installer is not Authenticode signed.
 
@@ -56,3 +56,4 @@ Maintainers publish using `scripts/Build-Release.ps1`, with the existing private
 BeniZip's interface and application code are original, MIT-licensed work by Bennet Nkolele. It contains no WinRAR code, icons or artwork. The separately licensed, unmodified 7-Zip 26.04 engine is included; see [third-party notices](THIRD-PARTY-NOTICES.md) and [the original engine licence](vendor/7zip/License.txt). Matching engine source is linked there and included with the GitHub release.
 
 RAR compression needs the separately installed RAR helper and its licence. Recovery records, archive repair, SFX authoring and every WinRAR feature are not implemented. Multi-layer formats such as TAR.GZ can be opened layer by layer. Existing-folder extraction checks conflicts first; a late disk error can still leave some already merged files. New-folder extraction is staged and published only after successful integrity checks.
+
