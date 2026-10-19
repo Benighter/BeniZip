@@ -4,6 +4,8 @@ A compact, native Windows archive manager. Clean white windows, familiar archive
 
 [Download the Windows installer](https://github.com/Benighter/BeniZip/releases/latest) · [Release notes](CHANGELOG.md) · [MIT licence](LICENSE)
 
+![BeniZip's compact white archive browser](assets/screenshot.png)
+
 ## What it does
 
 - Browse archives and ordinary folders, search, sort and inspect file properties.
