@@ -1,0 +1,21 @@
+name: Windows build and archive checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build from public source without publishing credentials
+        shell: powershell
+        run: ./scripts/Build.ps1
+      - name: Exercise archive extraction, passwords, cancellation and editing
+        run: |
+          python tests/verify.py --cancel-check --skip-rar
+          python tests/verify_editing.py --skip-rar

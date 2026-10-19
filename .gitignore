@@ -1,0 +1,13 @@
+build/
+.work/
+*.user
+*.pfx
+*.key
+*.private.xml
+analysis/
+VERIFICATION.md
+.env
+.env.*
+channel.json
+associations.json
+__pycache__/
