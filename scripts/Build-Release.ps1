@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.2.0.0',[string]$Repository='Benighter/BeniZip',[string]$Notes='Compact white archive browser with extraction progress and remaining time. Install with every supported archive type selected. Updates are delivered from GitHub and verified before installation.',[string]$SigningKey=(Join-Path $env:LOCALAPPDATA 'BeniZip-ReleaseKeys\release.private.xml'))
+param([string]$Version='0.2.1.0',[string]$Repository='Benighter/BeniZip',[string]$Notes='Fixed clipped text in the address bar, search box and other text fields.',[string]$SigningKey=(Join-Path $env:LOCALAPPDATA 'BeniZip-ReleaseKeys\release.private.xml'))
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $parsed=[Version]$Version

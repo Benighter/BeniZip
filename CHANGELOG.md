@@ -1,5 +1,9 @@
 # Release notes
 
+## 0.2.1 — 29 October 2026
+
+- Fixed clipped text in the address bar, search box and other text fields.
+
 ## 0.2.0 — 19 October 2026
 
 - First public, open-source release under the MIT licence.

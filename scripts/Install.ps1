@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.2.0.0',[switch]$OpenDefaults)
+param([string]$Version='0.2.1.0',[switch]$OpenDefaults)
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $runtime=Join-Path $projectRoot ('build\app-'+$Version)
