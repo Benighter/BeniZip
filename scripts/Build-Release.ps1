@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.2.1.0',[string]$Repository='Benighter/BeniZip',[string]$Notes='Fixed clipped text in the address bar, search box and other text fields.',[string]$SigningKey=(Join-Path $env:LOCALAPPDATA 'BeniZip-ReleaseKeys\release.private.xml'))
+param([string]$Version='0.2.2.0',[string]$Repository='Benighter/BeniZip',[string]$Notes='Create and edit supported RAR archives without WinRAR. Archives with unsupported features are protected from unsafe edits.',[string]$SigningKey=(Join-Path $env:LOCALAPPDATA 'BeniZip-ReleaseKeys\release.private.xml'))
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $parsed=[Version]$Version
@@ -25,7 +25,7 @@ try{
  $references=@('System.dll','System.Core.dll','System.Web.Extensions.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll','System.Xaml.dll','System.Drawing.dll','System.Windows.Forms.dll','C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\WindowsBase.dll','C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\PresentationCore.dll','C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\PresentationFramework.dll')
  $setup=Join-Path $release ('BeniZip-Setup-'+$parsed.ToString(3)+'.exe')
  $options=@('/nologo','/optimize+','/target:winexe','/platform:x64','/langversion:5',('/out:'+$setup),('/win32manifest:'+(Join-Path $projectRoot 'src\app.manifest')),('/win32icon:'+(Join-Path $projectRoot 'assets\BeniZip.ico')),('/resource:'+(Join-Path $projectRoot 'assets\release-public.xml')+',BeniZip.ReleaseKey'),('/resource:'+$package+',BeniZip.Package'),('/resource:'+$manifest+',BeniZip.Manifest'),('/resource:'+(Join-Path $projectRoot 'build\installer-tools\BeniZip.Uninstall.exe')+',BeniZip.Uninstaller'))+@($references|ForEach-Object{'/reference:'+$_})
- & $compiler @options (Join-Path $projectRoot 'src\ArchiveEngine.cs') (Join-Path $projectRoot 'src\Updates.cs') (Join-Path $projectRoot 'src\ArchiveAssociations.cs') (Join-Path $projectRoot 'src\SetupProgram.cs') (Join-Path $projectRoot 'build\Version.txt')
+ & $compiler @options (Join-Path $projectRoot 'src\ArchiveEngine.cs') (Join-Path $projectRoot 'src\RarSupport.cs') (Join-Path $projectRoot 'src\Updates.cs') (Join-Path $projectRoot 'src\ArchiveAssociations.cs') (Join-Path $projectRoot 'src\SetupProgram.cs') (Join-Path $projectRoot 'build\Version.txt')
  if($LASTEXITCODE -ne 0){throw 'Setup compilation failed'}
  $checksums=Get-ChildItem -LiteralPath $release -File|Sort-Object Name|ForEach-Object{(Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant()+'  '+$_.Name}
  [IO.File]::WriteAllLines((Join-Path $release 'SHA256SUMS.txt'),$checksums,[Text.UTF8Encoding]::new($false))

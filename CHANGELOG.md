@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.2.2 — 30 October 2026
+
+- Create RAR5 archives and add or remove items from supported RAR archives without WinRAR.
+- Create encrypted and split RAR archives. Protected RAR editing requires the password and temporarily stages decrypted data on disk.
+- Unsupported protected or split archives are left unchanged. For other archives that require rebuilding, BeniZip asks first and keeps a copy of the original.
+
 ## 0.2.1 — 29 October 2026
 
 - Fixed clipped text in the address bar, search box and other text fields.

@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.2.1.0')
+param([string]$Version='0.2.2.0')
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $buildRoot=Join-Path $projectRoot 'build'
@@ -17,6 +17,11 @@ Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\BeniZip.ico') -Destinatio
 Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\icon.png') -Destination (Join-Path $runtime 'assets\icon.png')
 Get-ChildItem -LiteralPath (Join-Path $projectRoot 'vendor\7zip') -File | Copy-Item -Destination (Join-Path $runtime 'engine')
 $notices=[IO.File]::ReadAllText((Join-Path $projectRoot 'LICENSE'))+[Environment]::NewLine+[IO.File]::ReadAllText((Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md'))+[Environment]::NewLine+[IO.File]::ReadAllText((Join-Path $projectRoot 'vendor\7zip\License.txt'))
+$rarVendor=Join-Path $projectRoot 'vendor\rars'
+foreach($file in @(Get-ChildItem -LiteralPath $rarVendor -File -Filter 'LICENSE-*.txt')+@(Get-ChildItem -LiteralPath (Join-Path $rarVendor 'licenses') -File -Recurse) | Sort-Object FullName){
+ $name=$file.FullName.Substring($rarVendor.Length+1)
+ $notices+=[Environment]::NewLine+[Environment]::NewLine+('===== RAR component notice: '+$name+' =====')+[Environment]::NewLine+[IO.File]::ReadAllText($file.FullName)
+}
 [IO.File]::WriteAllText((Join-Path $runtime 'engine\License.txt'),$notices,[Text.UTF8Encoding]::new($false))
 $versionSource=Join-Path $buildRoot 'Version.txt'
 # The generated assembly attributes are a compiler input; .txt avoids confusing disposable output with authored source.
@@ -24,12 +29,14 @@ $versionSource=Join-Path $buildRoot 'Version.txt'
 $source=Join-Path $projectRoot 'src'
 $references=@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Web.Extensions.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll','System.Xaml.dll','C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\WindowsBase.dll','C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\PresentationCore.dll','C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\PresentationFramework.dll')
 $common=@('/nologo','/optimize+','/platform:x64','/langversion:5',('/win32manifest:'+(Join-Path $source 'app.manifest')),('/win32icon:'+(Join-Path $projectRoot 'assets\BeniZip.ico')),('/resource:'+$publicKey+',BeniZip.ReleaseKey'),('/resource:'+(Join-Path $source 'Shell.Light.xaml')+',BeniZip.Shell.xaml'))+@($references|ForEach-Object{'/reference:'+$_})
-$appSources=@((Join-Path $source 'ArchiveEngine.cs'),(Join-Path $source 'Updates.cs'),(Join-Path $source 'ArchiveAssociations.cs'),(Join-Path $source 'ArchiveWindow.cs'),(Join-Path $source 'ProgressWindow.cs'),(Join-Path $source 'Program.cs'),$versionSource)
+$rarResource=Join-Path $projectRoot 'vendor\rars\RarAdapter.zip'
+if(!(Test-Path -LiteralPath $rarResource)){throw 'The bundled RAR engine is missing.'}
+$appSources=@((Join-Path $source 'ArchiveEngine.cs'),(Join-Path $source 'RarSupport.cs'),(Join-Path $source 'Updates.cs'),(Join-Path $source 'ArchiveAssociations.cs'),(Join-Path $source 'ArchiveWindow.cs'),(Join-Path $source 'ProgressWindow.cs'),(Join-Path $source 'Program.cs'),$versionSource)
 & $compiler @common '/target:winexe' ('/out:'+(Join-Path $runtime 'BeniZip.exe')) @appSources
 if($LASTEXITCODE -ne 0){throw 'BeniZip build failed'}
-& $compiler @common '/target:exe' ('/out:'+(Join-Path $runtime 'BeniZip.Cli.exe')) @appSources
+& $compiler @common ('/resource:'+$rarResource+',BeniZip.RarAdapter') '/target:exe' ('/out:'+(Join-Path $runtime 'BeniZip.Cli.exe')) @appSources
 if($LASTEXITCODE -ne 0){throw 'BeniZip CLI build failed'}
-& $compiler @common '/target:winexe' ('/out:'+(Join-Path $runtime 'BeniZip.Update.exe')) (Join-Path $source 'ArchiveEngine.cs') (Join-Path $source 'Updates.cs') (Join-Path $source 'UpdateProgram.cs') $versionSource
+& $compiler @common '/target:winexe' ('/out:'+(Join-Path $runtime 'BeniZip.Update.exe')) (Join-Path $source 'ArchiveEngine.cs') (Join-Path $source 'RarSupport.cs') (Join-Path $source 'Updates.cs') (Join-Path $source 'UpdateProgram.cs') $versionSource
 if($LASTEXITCODE -ne 0){throw 'BeniZip updater build failed'}
 foreach($name in @('BeniZip.exe','BeniZip.Cli.exe','BeniZip.Update.exe')){Copy-Item -LiteralPath (Join-Path $source 'app.config') -Destination (Join-Path $runtime ($name+'.config'))}
 [pscustomobject]@{Version=$Version;Runtime=$runtime;Sha256=(Get-FileHash -LiteralPath (Join-Path $runtime 'BeniZip.exe')).Hash;EngineVersion=(Get-Item -LiteralPath (Join-Path $runtime 'engine\7z.exe')).VersionInfo.FileVersion}

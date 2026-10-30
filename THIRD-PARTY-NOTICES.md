@@ -18,6 +18,13 @@ Source SHA-256: 9691944c0fe0d01bb49373a704fb983fd33bc98b1738695179dfbf99ac1734f6
 
 7-Zip project and licensing: https://www.7-zip.org/license.txt
 
-RAR creation and editing are optional. They use the separately installed
-RAR command-line helper, under its own licence. BeniZip does not redistribute
-RAR/WinRAR binaries, source, icons, or artwork.
+RAR creation and editing use rars 0.12.3, an independent implementation at
+https://github.com/bitplane/rars, distributed by its authors under the
+Apache License 2.0. Its dependency list is in vendor/rars/rars-sbom.json;
+component licence texts and notices are in vendor/rars/licenses. The bundled
+adapter includes Python 3.12.10 under the Python Software Foundation licence
+and a PyInstaller 6.21.0 bootloader under its licence and bootloader exception.
+It also includes OpenSSL 3.0.16, Copyright (c) 1998-2025 The OpenSSL Project
+and Copyright (c) 1995-1998 Eric A. Young and Tim J. Hudson, under Apache 2.0.
+Their licence texts and the rars licence are in vendor/rars/LICENSE-*.txt.
+These notices are also included in the installed engine/License.txt.

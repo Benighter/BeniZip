@@ -13,7 +13,7 @@ using System.Windows.Forms;
 [assembly:AssemblyProduct("BeniZip")]
 
 namespace BeniZip {
- public sealed class CliRequest {public string action,archive,destination,password,collision,format,output,split;public string[] inputs,selection;public int level=1,cancelAfterMs;public bool hideNames,details;}
+ public sealed class CliRequest {public string action,archive,destination,password,collision,format,output,split;public string[] inputs,selection;public int level=1,cancelAfterMs;public bool hideNames,details,allowRarRebuild;}
  public static class Program {
   [STAThread] public static int Main(string[] args) {try{return Run(args);}catch(Exception ex){try{Directory.CreateDirectory(Updates.DataRoot);File.WriteAllText(Path.Combine(Updates.DataRoot,"last-error.log"),ex.ToString());}catch{}MessageBox.Show(ex.Message,"BeniZip",MessageBoxButtons.OK,MessageBoxIcon.Warning);return 2;}}
   static int Run(string[] args) {
@@ -36,8 +36,8 @@ namespace BeniZip {
     case "extract":var i=ArchiveEngine.List(request.archive,request.password,token);var files=ArchiveEngine.Extract(i,request.destination,request.selection,request.password,request.collision??"Rename",token,null);result=new{files=files.Count};break;
     case "test":ArchiveEngine.Test(request.archive,request.password,token,null);result=new{passed=true};break;
     case "create":ArchiveEngine.Create(request.inputs,request.output,request.format??"ZIP",request.level,request.password,request.hideNames,request.split,token,null);result=new{created=request.output};break;
-    case "delete":ArchiveEngine.Edit(ArchiveEngine.List(request.archive,request.password,token),request.selection,null,request.password,true,token,null);result=new{edited=true};break;
-    case "add":ArchiveEngine.Edit(ArchiveEngine.List(request.archive,request.password,token),null,request.inputs,request.password,false,token,null);result=new{edited=true};break;
+    case "delete":ArchiveEngine.Edit(ArchiveEngine.List(request.archive,request.password,token),request.selection,null,request.password,true,token,null,request.allowRarRebuild);result=new{edited=true};break;
+    case "add":ArchiveEngine.Edit(ArchiveEngine.List(request.archive,request.password,token),null,request.inputs,request.password,false,token,null,request.allowRarRebuild);result=new{edited=true};break;
     case "verify-update":result=new{version=Updates.Verify(File.ReadAllText(request.archive)).Version.ToString()};break;
     case "verify-update-package":var update=Updates.Verify(File.ReadAllText(request.archive));Updates.VerifyPackage(update,request.output);result=new{version=update.Version.ToString(),verified=true};break;
     default:throw new ArgumentException("Unknown CLI action.");

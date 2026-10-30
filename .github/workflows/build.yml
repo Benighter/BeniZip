@@ -19,3 +19,4 @@ jobs:
         run: |
           python tests/verify.py --cancel-check --skip-rar
           python tests/verify_editing.py --skip-rar
+          python tests/verify_rar.py

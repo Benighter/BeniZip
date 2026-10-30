@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -42,10 +43,6 @@ namespace BeniZip {
  public static class ArchiveEngine {
   static readonly Regex ProgressLine=new Regex(@"^\s*(?<percent>\d{1,3})%(?:\s+(?<entries>\d+))?(?: [+-] (?<file>.+))?\s*$",RegexOptions.CultureInvariant);
   public static string Seven { get { return System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"engine","7z.exe"); } }
-  public static string Rar { get {
-   string p=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"WinRAR","Rar.exe");
-   return System.IO.File.Exists(p)?p:null;
-  } }
   public static bool IsArchive(string path) {
    string e=System.IO.Path.GetExtension(path).ToLowerInvariant();
    return new[]{".zip",".rar",".7z",".tar",".gz",".tgz",".bz2",".xz",".zst",".cab",".iso",".jar",".arj",".lzh",".001",".wim",".esd",".vhd",".img",".epub",".apk",".msix",".appx"}.Contains(e);
@@ -233,21 +230,23 @@ namespace BeniZip {
    while(!full.All(p=>p.StartsWith(root.TrimEnd('\\','/')+System.IO.Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))){root=System.IO.Path.GetDirectoryName(root.TrimEnd('\\','/'));if(root==null)throw new IOException("Choose files on the same drive.");}
    return root;
   }
+  static object[] RarInputs(string[] inputs,string cwd){var result=new List<object>();foreach(string input in inputs){CheckSource(input);string full=System.IO.Path.GetFullPath(input),name=full.Substring(cwd.Length).TrimStart('\\').Replace('\\','/');ValidateName(name);result.Add(new{path=full,name=name});}return result.ToArray();}
+  static long? RarSplitSize(string value){if(string.IsNullOrEmpty(value))return null;if(!Regex.IsMatch(value,@"^\d+[kmg]$",RegexOptions.IgnoreCase))throw new IOException("Split size must be a number followed by k, m or g.");long amount;if(!long.TryParse(value.Substring(0,value.Length-1),out amount)||amount<=0)throw new IOException("Split size must be greater than zero.");long multiplier=char.ToLowerInvariant(value[value.Length-1])=='k'?1024L:char.ToLowerInvariant(value[value.Length-1])=='m'?1024L*1024:1024L*1024*1024;try{return checked(amount*multiplier);}catch(OverflowException){throw new IOException("Split size is too large.");}}
   public static void Create(string[] inputs,string output,string format,int level,string password,bool hideNames,string split,CancellationToken token,Action<ProgressInfo> progress) {
    if(inputs.Length==0)throw new InvalidOperationException("Choose files or a folder first.");
    foreach(string p in inputs) {CheckSource(p); if(p.Any(char.IsControl))throw new IOException("Unsupported source name.");}
    string cwd=CommonParent(inputs),parent=System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(output));Directory.CreateDirectory(parent);
    if(inputs.Any(p=>Directory.Exists(p)&&System.IO.Path.GetFullPath(output).StartsWith(System.IO.Path.GetFullPath(p).TrimEnd('\\')+"\\",StringComparison.OrdinalIgnoreCase)))throw new IOException("Save the archive outside the folder being compressed.");
    string temp=System.IO.Path.Combine(parent,".benizip-"+Guid.NewGuid().ToString("N")+"."+format.ToLowerInvariant());
-   var args=new List<string>();string engine;
-   if(format=="RAR") {if(Rar==null)throw new IOException("RAR creation needs an installed, appropriately licensed RAR helper. Choose ZIP or 7z instead.");engine=Rar;args.AddRange(new[]{"a","-m"+Math.Min(5,level),"-idq","-y"});if(!string.IsNullOrEmpty(password))args.Add((hideNames?"-hp":"-p")+password);}
-   else {engine=Seven;args=BaseArgs("a",password);args.AddRange(new[]{"-t"+format.ToLowerInvariant(),"-mx="+level,"-bsp1","-bso0"});if(password==null)args.RemoveAll(x=>x.StartsWith("-p"));else if(format=="ZIP")args.Add("-mem=AES256");else if(hideNames)args.Add("-mhe=on");}
-   if(!string.IsNullOrEmpty(split)) {if(!Regex.IsMatch(split,@"^\d+[kmg]$",RegexOptions.IgnoreCase))throw new IOException("Split size must be a number followed by k, m or g.");args.Add("-v"+split.ToLowerInvariant());}
-   args.Add("--");args.Add(temp);foreach(string p in inputs)args.Add(System.IO.Path.GetFullPath(p).Substring(cwd.Length).TrimStart('\\'));
+   var args=new List<string>();string engine=Seven;long? rarSplit=null;
+   if(format=="RAR") {if(!RarSupport.Available)throw new IOException("The built-in RAR engine is missing. Reinstall BeniZip.");if(hideNames&&string.IsNullOrEmpty(password))throw new IOException("Enter a password to encrypt file names.");rarSplit=RarSplitSize(split);}
+   else {args=BaseArgs("a",password);args.AddRange(new[]{"-t"+format.ToLowerInvariant(),"-mx="+level,"-bsp1","-bso0"});if(password==null)args.RemoveAll(x=>x.StartsWith("-p"));else if(format=="ZIP")args.Add("-mem=AES256");else if(hideNames)args.Add("-mhe=on");if(!string.IsNullOrEmpty(split)){if(!Regex.IsMatch(split,@"^\d+[kmg]$",RegexOptions.IgnoreCase))throw new IOException("Split size must be a number followed by k, m or g.");args.Add("-v"+split.ToLowerInvariant());}args.Add("--");args.Add(temp);foreach(string p in inputs)args.Add(System.IO.Path.GetFullPath(p).Substring(cwd.Length).TrimStart('\\'));}
    try {
-    Run(engine,args,cwd,token,progress,false);
+    if(format=="RAR")RarSupport.Run(new Dictionary<string,object>{{"operation","create"},{"inputs",RarInputs(inputs,cwd)},{"output",temp},{"level",Math.Min(5,level)},{"password",password},{"hideNames",hideNames},{"splitBytes",rarSplit}},token);else Run(engine,args,cwd,token,progress,false);
     string tempStem=System.IO.Path.GetFileNameWithoutExtension(temp);var produced=Directory.GetFiles(parent,tempStem+"*").OrderBy(x=>x).ToArray();
     if(produced.Length==0)throw new IOException("The engine produced no archive.");
+    // Verify a newly written RAR with a separate reader before publishing it.
+    if(format=="RAR")Test(produced[0],password,token,progress);
     string outputStem=System.IO.Path.Combine(parent,System.IO.Path.GetFileNameWithoutExtension(output));string sourceStem=System.IO.Path.Combine(parent,tempStem);
     var targets=produced.Select(p=>outputStem+p.Substring(sourceStem.Length)).ToArray();
     if(targets.Any(p=>File.Exists(p)||Directory.Exists(p)))throw new IOException("An archive with this name already exists. Choose a new name.");
@@ -255,7 +254,21 @@ namespace BeniZip {
    } finally {foreach(string p in Directory.GetFiles(parent,System.IO.Path.GetFileNameWithoutExtension(temp)+"*"))try{File.Delete(p);}catch{}}
   }
   static void CheckSource(string path){NoLinks(path);if(!Directory.Exists(path))return;var pending=new Stack<string>();pending.Push(path);while(pending.Count>0){string dir=pending.Pop();foreach(string child in Directory.EnumerateFileSystemEntries(dir)){var attrs=File.GetAttributes(child);if((attrs&FileAttributes.ReparsePoint)!=0)throw new IOException("Source folders containing symbolic links or junctions must be archived separately: "+child);if((attrs&FileAttributes.Directory)!=0)pending.Push(child);}}}
-  public static void Edit(ArchiveIndex index,string[] members,string[] inputs,string password,bool delete,CancellationToken token,Action<ProgressInfo> progress) {
+  static string RarMemberHash(string file,ArchiveItem item,string password,CancellationToken token){
+   var args=BaseArgs("x",password);args.AddRange(new[]{"-so","-bd","-bso0","--",file,item.SourcePath??item.Path});var start=new ProcessStartInfo(Seven,string.Join(" ",args.Select(Quote))){UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true};
+   using(var process=new Process()){process.StartInfo=start;var errors=new StringBuilder();process.ErrorDataReceived+=(s,e)=>{if(e.Data!=null&&errors.Length<4096)errors.AppendLine(e.Data);};token.ThrowIfCancellationRequested();process.Start();process.StandardInput.Close();process.BeginErrorReadLine();byte[] hash;
+    using(token.Register(()=>{try{if(!process.HasExited)process.Kill();}catch{}})){using(var sha=SHA256.Create())hash=sha.ComputeHash(process.StandardOutput.BaseStream);process.WaitForExit();process.WaitForExit();}token.ThrowIfCancellationRequested();if(process.ExitCode!=0)throw new IOException("An existing RAR file could not be verified: "+item.Path+" "+errors.ToString().Trim());return BitConverter.ToString(hash).Replace("-","");
+   }
+  }
+  static void VerifyRarRetained(ArchiveIndex before,ArchiveIndex after,string[] removed,bool delete,string password,CancellationToken token){
+   ValidateEntries(after.Items);var actual=after.Items.ToDictionary(x=>x.Path.TrimEnd('/'),StringComparer.OrdinalIgnoreCase);
+   foreach(var old in before.Items){string name=old.Path.TrimEnd('/');if(delete&&removed.Any(x=>name.Equals(x.TrimEnd('/'),StringComparison.OrdinalIgnoreCase)||name.StartsWith(x.TrimEnd('/')+"/",StringComparison.OrdinalIgnoreCase)))continue;
+    ArchiveItem item;if(!actual.TryGetValue(name,out item)||item.Folder!=old.Folder||item.Size!=old.Size)throw new InvalidDataException("An existing RAR item could not be verified after editing: "+name);
+    if(old.Encrypted!=item.Encrypted)throw new InvalidDataException("The protection of an existing RAR item could not be preserved: "+name);
+    if(!old.Folder&&old.Size>0&&(string.IsNullOrWhiteSpace(old.Crc)||string.IsNullOrWhiteSpace(item.Crc)||!old.Crc.Equals(item.Crc,StringComparison.OrdinalIgnoreCase))&&RarMemberHash(before.File,old,password,token)!=RarMemberHash(after.File,item,password,token))throw new InvalidDataException("An existing RAR file could not be verified after editing: "+name);
+   }
+  }
+  public static void Edit(ArchiveIndex index,string[] members,string[] inputs,string password,bool delete,CancellationToken token,Action<ProgressInfo> progress,bool allowRarRebuild=false) {
    string ext=System.IO.Path.GetExtension(index.File).ToLowerInvariant();
    if(!new[]{".zip",".7z",".rar"}.Contains(ext))throw new IOException("Editing is supported for ZIP, 7z and RAR archives.");
    string temp=System.IO.Path.Combine(System.IO.Path.GetDirectoryName(index.File),".benizip-"+Guid.NewGuid().ToString("N")+ext);
@@ -270,13 +283,21 @@ namespace BeniZip {
     var current=ListCore(index.File,password,token,false);
     if(current.Items.Any(x=>x.Encrypted)){
      if(string.IsNullOrEmpty(password))throw new EngineException("Enter the archive password before editing protected files.",true);
-     Test(index.File,password,token,progress);
+     if(ext!=".rar")Test(index.File,password,token,progress);
     }
-    File.Copy(index.File,temp);token.ThrowIfCancellationRequested();string exe=ext==".rar"?Rar:Seven;
-    if(exe==null)throw new IOException("Editing RAR archives needs the installed RAR helper.");
-    var a=ext==".rar"?new List<string>{delete?"d":"a","-y","-idq"}:BaseArgs(delete?"d":"a",password);
-    if(ext!=".rar"&&password==null)a.RemoveAll(x=>x.StartsWith("-p",StringComparison.Ordinal));
-    if(ext==".rar"&&!string.IsNullOrEmpty(password))a.Add("-p"+password);
+    if(ext==".rar"){
+     if(!RarSupport.Available)throw new IOException("The built-in RAR engine is missing. Reinstall BeniZip.");
+     ValidateEntries(current.Items);Test(index.File,password,token,progress);
+     var request=new Dictionary<string,object>{{"operation",delete?"delete":"add"},{"archive",index.File},{"output",temp},{"password",password},{"allowRebuild",allowRarRebuild}};
+     if(delete){if(members==null||members.Length==0)throw new IOException("Choose items to remove.");foreach(string m in members)ValidateName(m);request["members"]=members;}
+     else {string sourceRoot=CommonParent(inputs);request["inputs"]=RarInputs(inputs,sourceRoot);}
+     RarSupport.Run(request,token);token.ThrowIfCancellationRequested();Test(temp,password,token,progress);VerifyRarRetained(current,ListCore(temp,password,token,false),members??new string[0],delete,password,token);
+     identity.Refresh();if(identity.Length!=index.SourceLength||identity.LastWriteTimeUtc!=index.SourceModified)throw new IOException("The archive changed while it was being edited. Refresh it and try again.");
+     string backup=null;if(allowRarRebuild){backup=index.File+".backup.rar";if(File.Exists(backup)||Directory.Exists(backup))backup=index.File+".backup-"+Guid.NewGuid().ToString("N")+".rar";}File.Replace(temp,index.File,backup);return;
+    }
+    File.Copy(index.File,temp);token.ThrowIfCancellationRequested();string exe=Seven;
+    var a=BaseArgs(delete?"d":"a",password);
+    if(password==null)a.RemoveAll(x=>x.StartsWith("-p",StringComparison.Ordinal));
     a.Add("--");a.Add(temp);string cwd=null;
     if(delete){foreach(string m in members){ValidateName(m);a.Add(m);} }
     else {cwd=CommonParent(inputs);foreach(string p in inputs){CheckSource(p);a.Add(System.IO.Path.GetFullPath(p).Substring(cwd.Length).TrimStart('\\'));}}
