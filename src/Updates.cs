@@ -64,7 +64,12 @@ namespace BeniZip {
    },token);
    token.ThrowIfCancellationRequested();
    string helper=Path.Combine(cache,"BeniZip.Update-"+Guid.NewGuid().ToString("N")+".exe");File.Copy(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"BeniZip.Update.exe"),helper);
-   Process.Start(new ProcessStartInfo(helper,string.Join(" ",new[]{manifest,package,AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\'),Process.GetCurrentProcess().Id.ToString()}.Select(ArchiveEngine.Quote))){UseShellExecute=false,CreateNoWindow=true});
+   Process.Start(UpdateHelperStartInfo(helper,manifest,package,AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\'),Process.GetCurrentProcess().Id));
+  }
+  static ProcessStartInfo UpdateHelperStartInfo(string helper,string manifest,string package,string root,int processId){
+   // Never inherit the app's working directory: Windows holds it open and
+   // the helper then cannot rename the installation directory during an update.
+   return new ProcessStartInfo(helper,string.Join(" ",new[]{manifest,package,root,processId.ToString()}.Select(ArchiveEngine.Quote))){UseShellExecute=false,CreateNoWindow=true,WorkingDirectory=Path.GetDirectoryName(Path.GetFullPath(helper))};
   }
   static void CopyBounded(Stream input,Stream output,long expected,CancellationToken token){var buffer=new byte[1024*1024];long total=0;int n;while((n=input.Read(buffer,0,buffer.Length))>0){token.ThrowIfCancellationRequested();total+=n;if(total>expected)throw new InvalidDataException("Downloaded update exceeds its signed size.");output.Write(buffer,0,n);}if(total!=expected)throw new InvalidDataException("Downloaded update is incomplete.");}
   public static void VerifyPackage(UpdateInfo info,string package){if(new FileInfo(package).Length!=info.Size||!Hash(package).Equals(info.Release.sha256,StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("The downloaded update does not match its signed checksum or size.");}
@@ -82,7 +87,7 @@ namespace BeniZip {
      foreach(var e in zip.Entries){if(e.FullName.EndsWith("/"))continue;ArchiveEngine.ValidateName(e.FullName);if(!allowed.Contains(e.FullName,StringComparer.OrdinalIgnoreCase)||((e.ExternalAttributes>>16)&0xF000)==0xA000)throw new InvalidDataException("Unexpected update member: "+e.FullName);size+=e.Length;if(size>256L*1024*1024)throw new InvalidDataException("Update is too large.");string file=Path.Combine(stage,e.FullName.Replace('/',Path.DirectorySeparatorChar));Directory.CreateDirectory(Path.GetDirectoryName(file));e.ExtractToFile(file,false);}
     }
     string app=Path.Combine(stage,"BeniZip.exe");if(!File.Exists(app)||new Version(FileVersionInfo.GetVersionInfo(app).FileVersion)!=info.Version||!File.Exists(Path.Combine(stage,"engine","7z.dll")))throw new InvalidDataException("The package identity or version does not match the signed release.");
-    Directory.Move(root,backup);try{Directory.Move(stage,root);replaced=true;}catch{Directory.Move(backup,root);throw;}
+    try{Directory.Move(root,backup);}catch(IOException ex){throw new IOException("The BeniZip installation folder is in use. Close other BeniZip windows and programs using its installation folder, then try again.",ex);}try{Directory.Move(stage,root);replaced=true;}catch{Directory.Move(backup,root);throw;}
     Process.Start(new ProcessStartInfo(Path.Combine(root,"BeniZip.exe"),"--updated"){UseShellExecute=true});
     Directory.CreateDirectory(DataRoot);File.WriteAllText(Path.Combine(DataRoot,"last-update.json"),new JavaScriptSerializer().Serialize(new{version=info.Release.version,sha256=info.Release.sha256,installedPath=root,completedUtc=DateTime.UtcNow.ToString("o"),signatureVerified=true}));
     try{Directory.Delete(backup,true);File.Delete(package);File.Delete(manifest);}catch{}

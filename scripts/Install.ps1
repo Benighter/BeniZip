@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.2.3.0',[switch]$OpenDefaults)
+param([string]$Version='0.2.4.0',[switch]$OpenDefaults)
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $runtime=Join-Path $projectRoot ('build\app-'+$Version)
@@ -21,7 +21,7 @@ $shortcutShell=New-Object -ComObject WScript.Shell
 foreach($shortcutRoot in @([Environment]::GetFolderPath('DesktopDirectory'),(Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs'))){
  $shortcut=$shortcutShell.CreateShortcut((Join-Path $shortcutRoot 'BeniZip.lnk'))
  $shortcut.TargetPath=Join-Path $installRoot 'BeniZip.exe'
- $shortcut.WorkingDirectory=$installRoot
+ $shortcut.WorkingDirectory=[Environment]::GetFolderPath('LocalApplicationData')
  $shortcut.IconLocation=(Join-Path $installRoot 'BeniZip.exe')+',0'
  $shortcut.Description='View, extract and create archives'
  $shortcut.Save()

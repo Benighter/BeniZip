@@ -15,8 +15,14 @@ jobs:
       - name: Build from public source without publishing credentials
         shell: powershell
         run: ./scripts/Build.ps1
-      - name: Exercise archive extraction, passwords, cancellation and editing
+      - name: Exercise archives and updater launch
+        shell: powershell
         run: |
           python tests/verify.py --cancel-check --skip-rar
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/verify_editing.py --skip-rar
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/verify_rar.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/verify_updater_workdir.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

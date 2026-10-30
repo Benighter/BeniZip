@@ -1,5 +1,10 @@
 # Release notes
 
+## 0.2.4 — 30 October 2026
+
+- Fixed updates failing when the app's installation folder was held open as the updater's working folder.
+- New shortcuts use a safe working folder; update errors explain when another program is using the installation folder.
+
 ## 0.2.3 — 30 October 2026
 
 - Fixed built-in RAR operations on Windows systems using the UTF-8 console code page.

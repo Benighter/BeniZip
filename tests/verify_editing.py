@@ -224,7 +224,7 @@ class EditingChecks:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--runtime', default=str(ROOT / 'build' / 'app-0.2.3.0'))
+    parser.add_argument('--runtime', default=str(ROOT / 'build' / 'app-0.2.4.0'))
     parser.add_argument('--skip-rar', action='store_true')
     parser.add_argument('--report', default=str(ROOT / '.work' / 'edit-regression' / 'latest-report.json'))
     args = parser.parse_args()

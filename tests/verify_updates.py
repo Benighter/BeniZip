@@ -7,7 +7,7 @@ import subprocess
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--version', default='0.2.3.0')
+parser.add_argument('--version', default='0.2.4.0')
 parser.add_argument('--release-dir', type=Path)
 parser.add_argument('--report', type=Path)
 args = parser.parse_args()
