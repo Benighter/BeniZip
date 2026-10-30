@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.2.4.0',[string]$Repository='Benighter/BeniZip',[string]$Notes='Fixed updates failing when BeniZip is opened from its shortcut. Includes built-in RAR creation and supported editing without WinRAR.',[string]$SigningKey=(Join-Path $env:LOCALAPPDATA 'BeniZip-ReleaseKeys\release.private.xml'))
+param([string]$Version='0.2.6.0',[string]$Repository='Benighter/BeniZip',[string]$Notes='Drag files and folders from an archive directly onto the desktop or into Explorer folders. Large transfers stream to the destination without a full temporary copy.',[string]$SigningKey=(Join-Path $env:LOCALAPPDATA 'BeniZip-ReleaseKeys\release.private.xml'))
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $parsed=[Version]$Version
@@ -16,7 +16,12 @@ try{
  New-Item -ItemType Directory -Path $release|Out-Null
  $package=Join-Path $release ('BeniZip-'+$parsed.ToString(3)+'-win-x64.zip')
  Add-Type -AssemblyName System.IO.Compression.FileSystem
- [IO.Compression.ZipFile]::CreateFromDirectory((Join-Path $projectRoot ('build\app-'+$Version)),$package,[IO.Compression.CompressionLevel]::Optimal,$false)
+ # Match the updater's allowlist instead of packaging unrelated files that may
+ # already exist in a developer's runtime folder.
+ $runtime=Join-Path $projectRoot ('build\app-'+$Version)
+ $members=@('BeniZip.exe','BeniZip.Update.exe','BeniZip.Cli.exe','BeniZip.ico','BeniZip.exe.config','BeniZip.Cli.exe.config','BeniZip.Update.exe.config','assets/icon.png','engine/7z.exe','engine/7z.dll','engine/License.txt','engine/source-url.txt')
+ $zip=[IO.Compression.ZipFile]::Open($package,[IO.Compression.ZipArchiveMode]::Create)
+ try{foreach($member in $members){$path=Join-Path $runtime ($member.Replace('/','\'));if(!(Test-Path -LiteralPath $path -PathType Leaf)){throw "Missing release member: $member"};[IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$path,$member,[IO.Compression.CompressionLevel]::Optimal)|Out-Null}}finally{$zip.Dispose()}
  $payload=[ordered]@{applicationId='BeniZip.Windows.x64';version=$Version;packageUri=('https://github.com/'+$Repository+'/releases/download/'+$tag+'/'+[IO.Path]::GetFileName($package));bytes=(Get-Item -LiteralPath $package).Length;sha256=(Get-FileHash -LiteralPath $package).Hash.ToLowerInvariant();notes=$Notes}|ConvertTo-Json -Compress
  $bytes=[Text.Encoding]::UTF8.GetBytes($payload)
  $envelope=@{payload=[Convert]::ToBase64String($bytes);signature=[Convert]::ToBase64String($rsa.SignData($bytes,[Security.Cryptography.CryptoConfig]::MapNameToOID('SHA256')))}|ConvertTo-Json -Compress

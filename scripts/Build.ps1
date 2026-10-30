@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.2.4.0')
+param([string]$Version='0.2.6.0')
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $buildRoot=Join-Path $projectRoot 'build'
@@ -31,7 +31,7 @@ $references=@('System.dll','System.Core.dll','System.Drawing.dll','System.Window
 $common=@('/nologo','/optimize+','/platform:x64','/langversion:5',('/win32manifest:'+(Join-Path $source 'app.manifest')),('/win32icon:'+(Join-Path $projectRoot 'assets\BeniZip.ico')),('/resource:'+$publicKey+',BeniZip.ReleaseKey'),('/resource:'+(Join-Path $source 'Shell.Light.xaml')+',BeniZip.Shell.xaml'))+@($references|ForEach-Object{'/reference:'+$_})
 $rarResource=Join-Path $projectRoot 'vendor\rars\RarAdapter.zip'
 if(!(Test-Path -LiteralPath $rarResource)){throw 'The bundled RAR engine is missing.'}
-$appSources=@((Join-Path $source 'ArchiveEngine.cs'),(Join-Path $source 'RarSupport.cs'),(Join-Path $source 'Updates.cs'),(Join-Path $source 'ArchiveAssociations.cs'),(Join-Path $source 'ArchiveWindow.cs'),(Join-Path $source 'ProgressWindow.cs'),(Join-Path $source 'Program.cs'),$versionSource)
+$appSources=@((Join-Path $source 'ArchiveEngine.cs'),(Join-Path $source 'RarSupport.cs'),(Join-Path $source 'Updates.cs'),(Join-Path $source 'ArchiveAssociations.cs'),(Join-Path $source 'ArchiveDragDrop.cs'),(Join-Path $source 'ArchiveDragStream.cs'),(Join-Path $source 'ArchiveWindow.cs'),(Join-Path $source 'ProgressWindow.cs'),(Join-Path $source 'Program.cs'),$versionSource)
 & $compiler @common '/target:winexe' ('/out:'+(Join-Path $runtime 'BeniZip.exe')) @appSources
 if($LASTEXITCODE -ne 0){throw 'BeniZip build failed'}
 & $compiler @common ('/resource:'+$rarResource+',BeniZip.RarAdapter') '/target:exe' ('/out:'+(Join-Path $runtime 'BeniZip.Cli.exe')) @appSources

@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument("--runtime", type=Path, default=ROOT / "build" / "app-0.2.4.0")
+parser.add_argument("--runtime", type=Path, default=ROOT / "build" / "app-0.2.6.0")
 args = parser.parse_args()
 CLI = args.runtime.resolve() / "BeniZip.Cli.exe"
 SEVEN = args.runtime.resolve() / "engine" / "7z.exe"

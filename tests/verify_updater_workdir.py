@@ -54,7 +54,7 @@ install = work / "installation"
 install.mkdir()
 markers = work / "markers"
 markers.mkdir()
-cli = root / "build" / "app-0.2.4.0" / "BeniZip.Cli.exe"
+cli = root / "build" / "app-0.2.6.0" / "BeniZip.Cli.exe"
 env = os.environ.copy()
 env.update({"BENIZIP_TEST_CLI": str(cli), "BENIZIP_TEST_PYTHON": sys.executable,
             "BENIZIP_TEST_SCRIPT": str(Path(__file__).resolve()),

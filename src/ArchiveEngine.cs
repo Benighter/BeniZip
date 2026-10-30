@@ -85,6 +85,9 @@ namespace BeniZip {
   public static ArchiveIndex List(string file,string password,CancellationToken token) {
    return ListCore(file,password,token,true);
   }
+  internal static ArchiveIndex ListForDrag(string file,string password,CancellationToken token) {
+   return ListCore(file,password,token,false);
+  }
   static ArchiveIndex ListCore(string file,string password,CancellationToken token,bool fastZip) {
    file=System.IO.Path.GetFullPath(file);var identity=new FileInfo(file);var index=new ArchiveIndex{File=file,Format=System.IO.Path.GetExtension(file).TrimStart('.').ToUpperInvariant(),SourceLength=identity.Length,SourceModified=identity.LastWriteTimeUtc};
    // Direct central-directory reads avoid launching a process for ordinary ZIP browsing.
@@ -155,7 +158,7 @@ namespace BeniZip {
    }
    public void Dispose(){foreach(var h in handles.Values)h.Dispose();handles.Clear();}
   }
-  static Dictionary<string,bool> ValidateEntries(IEnumerable<ArchiveItem> items) {
+  internal static Dictionary<string,bool> ValidateEntries(IEnumerable<ArchiveItem> items) {
    var names=new Dictionary<string,bool>(StringComparer.OrdinalIgnoreCase);
    foreach(var item in items){ValidateName(item.Path);if(item.Link)throw new InvalidDataException("This archive contains links. BeniZip blocks link extraction to protect files outside the destination.");string key=item.Path.TrimEnd('/');if(names.ContainsKey(key))throw new InvalidDataException("Ambiguous duplicate archive path: "+item.Path);names.Add(key,item.Folder);}
    foreach(string path in names.Keys){int end=path.LastIndexOf('/');while(end>=0){bool folder;string parent=path.Substring(0,end);if(names.TryGetValue(parent,out folder)&&!folder)throw new InvalidDataException("An archive file is also used as a folder: "+parent);end=parent.LastIndexOf('/');}}
@@ -223,6 +226,20 @@ namespace BeniZip {
   }
   public static void Test(string file,string password,CancellationToken token,Action<ProgressInfo> progress) {
    var args=BaseArgs("t",password);args.AddRange(new[]{"-bsp1","-bso0","--",file});Run(Seven,args,null,token,progress,false);
+  }
+  internal static void CheckDragIndex(ArchiveIndex expected,ArchiveIndex actual) {
+   if(expected.SourceLength!=actual.SourceLength||expected.SourceModified!=actual.SourceModified)throw new IOException("The archive changed after it was opened. Refresh it before dragging.");
+   ValidateEntries(actual.Items);var items=actual.Items.ToDictionary(x=>x.Path.TrimEnd('/'),StringComparer.Ordinal);
+   if(items.Count!=expected.Items.Count||expected.Items.Any(x=>{ArchiveItem item;return !items.TryGetValue(x.Path.TrimEnd('/'),out item)||x.Folder!=item.Folder||x.Size!=item.Size;}))throw new IOException("The archive index changed. Refresh it before dragging.");
+  }
+  internal static void TestEncryptedForDrag(ArchiveIndex index,string[] selection,string password,CancellationToken token,Action<ProgressInfo> progress) {
+   var encrypted=index.Items.Where(x=>!x.Folder&&x.Encrypted&&Selected(x,selection)).ToArray();if(encrypted.Length==0)return;
+   using(var sourceLock=new FileStream(index.File,FileMode.Open,FileAccess.Read,FileShare.Read)) {
+    if(sourceLock.Length!=index.SourceLength||File.GetLastWriteTimeUtc(index.File)!=index.SourceModified)throw new IOException("The archive changed after it was opened. Refresh it before dragging.");
+    string list=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"BeniZip-Drag-Selection-"+Guid.NewGuid().ToString("N")+".txt");
+    try{File.WriteAllLines(list,encrypted.Select(x=>x.SourcePath??x.Path).Distinct(),new UTF8Encoding(false));var args=BaseArgs("t",password);args.AddRange(new[]{"-bsp1","-bso0","-bse2","-i@"+list,"--",index.File});Run(Seven,args,null,token,progress,false);}
+    finally{try{if(File.Exists(list))File.Delete(list);}catch{}}
+   }
   }
   public static string CommonParent(string[] paths) {
    if(paths==null||paths.Length==0)throw new IOException("Choose files or a folder first.");

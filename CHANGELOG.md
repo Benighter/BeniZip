@@ -1,5 +1,10 @@
 # Release notes
 
+## 0.2.6 — 30 October 2026
+
+- Drag files and folders from an open archive directly onto the desktop or into a Windows Explorer folder.
+- Large transfers stream to the destination without first making a complete temporary copy.
+
 ## 0.2.4 — 30 October 2026
 
 - Fixed updates failing when the app's installation folder was held open as the updater's working folder.
