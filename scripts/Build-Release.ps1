@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.2.2.0',[string]$Repository='Benighter/BeniZip',[string]$Notes='Create and edit supported RAR archives without WinRAR. Archives with unsupported features are protected from unsafe edits.',[string]$SigningKey=(Join-Path $env:LOCALAPPDATA 'BeniZip-ReleaseKeys\release.private.xml'))
+param([string]$Version='0.2.3.0',[string]$Repository='Benighter/BeniZip',[string]$Notes='Create and edit supported RAR archives without WinRAR. This update also fixes RAR operations on Windows systems using the UTF-8 console code page.',[string]$SigningKey=(Join-Path $env:LOCALAPPDATA 'BeniZip-ReleaseKeys\release.private.xml'))
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $parsed=[Version]$Version

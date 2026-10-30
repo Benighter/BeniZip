@@ -49,7 +49,7 @@ def files_match(source, destination):
 def main():
     global CLI, BENCHMARK_REPORT
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runtime', default=str(ROOT / 'build' / 'app-0.2.2.0'))
+    parser.add_argument('--runtime', default=str(ROOT / 'build' / 'app-0.2.3.0'))
     parser.add_argument('--skip-rar', action='store_true', help='Skip checks requiring a separately installed licensed RAR helper')
     parser.add_argument('--bench', action='store_true')
     parser.add_argument('--report', default=str(ROOT / 'analysis' / 'verification.json'))

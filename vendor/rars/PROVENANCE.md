@@ -10,7 +10,7 @@ SHA-256 before extracting or running it.
   `5e926e8c861491a9673b8c0bb64e6c3099d50deaebd9633f52d9391c04e7463a`
 - Python 3.12.10 and PyInstaller 6.21.0, built for 64-bit Windows.
 - Bundled ZIP SHA-256:
-  `722c35919281f798f4dd860e2526863d848e61896b4812718eab849e1165204b`
+  `5e8ceaf9ed9da4f8498ac7a87373e2b1af72e4101633a55cd10e18e7a28ec91d`
 
 To rebuild the adapter, install the verified wheel in an isolated Python
 environment with PyInstaller, then run PyInstaller in `--onedir` mode on

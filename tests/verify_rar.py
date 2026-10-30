@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument("--runtime", type=Path, default=ROOT / "build" / "app-0.2.2.0")
+parser.add_argument("--runtime", type=Path, default=ROOT / "build" / "app-0.2.3.0")
 args = parser.parse_args()
 CLI = args.runtime.resolve() / "BeniZip.Cli.exe"
 SEVEN = args.runtime.resolve() / "engine" / "7z.exe"
@@ -52,6 +52,19 @@ source = WORK / "source"
 (source / "unicode-世界.txt").write_text("Unicode contents", encoding="utf-8")
 extra = WORK / "added.txt"
 extra.write_text("added content", encoding="utf-8")
+
+# The helper protocol must also work when Windows uses the UTF-8 console code
+# page, where the default .NET StreamWriter may otherwise prepend a BOM.
+utf8_archive = WORK / "utf8-console.rar"
+utf8_request = WORK / "utf8-request.json"
+utf8_request.write_text(json.dumps({"action": "create", "inputs": [str(extra)],
+                                    "output": str(utf8_archive), "format": "RAR"}), encoding="utf-8")
+command = "chcp 65001>nul && " + subprocess.list2cmdline([str(CLI), "--cli", str(utf8_request)])
+utf8_run = subprocess.run(["cmd.exe", "/d", "/c", command], capture_output=True,
+                          text=True, encoding="utf-8", timeout=120)
+assert utf8_run.returncode == 0 and json.loads(utf8_run.stdout)["ok"], (utf8_run.stdout, utf8_run.stderr)
+assert extract(utf8_archive, WORK / "utf8-extract")["added.txt"] == digest(extra)
+print("RAR helper works with the UTF-8 Windows console code page: PASS", flush=True)
 
 for password in (None, "Synthetic-Only!"):
     label = "protected" if password else "plain"

@@ -123,7 +123,12 @@ def edit(request):
 
 
 def main():
-    request = json.loads(base64.b64decode(sys.stdin.readline()).decode("utf-8"))
+    line = sys.stdin.buffer.readline()
+    # .NET may write a UTF-8 BOM on redirected stdin when the Windows console
+    # uses code page 65001. The base64 protocol itself is always ASCII.
+    if line.startswith(b"\xef\xbb\xbf"):
+        line = line[3:]
+    request = json.loads(base64.b64decode(line).decode("utf-8"))
     if request["operation"] == "create":
         create(request)
     elif request["operation"] in ("add", "delete"):

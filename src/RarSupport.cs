@@ -16,7 +16,7 @@ namespace BeniZip {
  }
  public static class RarSupport {
   const string ResourceName="BeniZip.RarAdapter";
-  const string ExpectedHash="722c35919281f798f4dd860e2526863d848e61896b4812718eab849e1165204b";
+  const string ExpectedHash="5e8ceaf9ed9da4f8498ac7a87373e2b1af72e4101633a55cd10e18e7a28ec91d";
   static readonly object CacheLock=new object();
   public static bool Available {get{return File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"BeniZip.Cli.exe"));}}
 

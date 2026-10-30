@@ -21,7 +21,7 @@ The window opens at 1000 × 650 and remembers your preferred size.
 
 ## Install and file defaults
 
-Windows 10/11, x64, with .NET Framework 4.8. Run `BeniZip-Setup-0.2.2.exe` from the latest release. It installs for your account without administrator access.
+Windows 10/11, x64, with .NET Framework 4.8. Run `BeniZip-Setup-0.2.3.exe` from the latest release. It installs for your account without administrator access.
 
 **Every supported archive type is selected by default:** ZIP, RAR, 7z, TAR, GZ, TGZ, BZ2, XZ, ZST, CAB, ARJ, LZH and 001. Setup registers those types, Explorer commands and shortcuts. You can change the selection in Options → Default archive app. The screen shows which types actually open in BeniZip.
 
@@ -48,9 +48,9 @@ python tests/verify_rar.py
 
 The build uses the .NET Framework compiler included with Windows. Python 3.11+ is used for tests. The icon is checked in; Python/Pillow is only needed to regenerate it. The first two suites skip their legacy WinRAR-specific fixtures; `verify_rar.py` exercises the built-in RAR engine and checks its output with 7-Zip. GitHub Actions runs all three suites without WinRAR.
 
-Output is `build/app-0.2.2.0`. `scripts/Install.ps1` installs a source build for development; an existing different release must use the signed updater or setup.
+Output is `build/app-0.2.3.0`. `scripts/Install.ps1` installs a source build for development; an existing different release must use the signed updater or setup.
 
-Maintainers publish using `scripts/Build-Release.ps1`, with the existing private key stored outside the repository. It creates a signed runtime ZIP, manifest, installer and checksums. Publish those as assets of the matching `v0.2.2` GitHub release. Keep published versions immutable. The default feed and pinned public key are explicit in source so forks can establish their own release identity.
+Maintainers publish using `scripts/Build-Release.ps1`, with the existing private key stored outside the repository. It creates a signed runtime ZIP, manifest, installer and checksums. Publish those as assets of the matching `v0.2.3` GitHub release. Keep published versions immutable. The default feed and pinned public key are explicit in source so forks can establish their own release identity.
 
 ## Scope and licences
 

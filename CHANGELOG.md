@@ -1,5 +1,9 @@
 # Release notes
 
+## 0.2.3 — 30 October 2026
+
+- Fixed built-in RAR operations on Windows systems using the UTF-8 console code page.
+
 ## 0.2.2 — 30 October 2026
 
 - Create RAR5 archives and add or remove items from supported RAR archives without WinRAR.
